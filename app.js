@@ -7,6 +7,13 @@ require("dotenv").config(); // Load environment variables
 const app = express();
 const path = require("path");
 
+// CORS Configuration - Allow all origins
+const corsOptions = {
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow specific HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+};
+
 // Root Route
 app.get("/", (req, res) => {
   res.send("Welcome to the Categories API!");
@@ -15,7 +22,7 @@ app.get("/", (req, res) => {
 // Middleware
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Static files
 app.use(bodyParser.json()); // JSON parsing middleware
-app.use(cors()); // Enable CORS
+app.use(cors(corsOptions)); // Enable CORS with custom options
 
 // Routes
 const categoryRoutes = require("./routes/category");
@@ -50,24 +57,29 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/search", searchRoutes);
 
 // Database Connection
-mongoose
-  .connect(process.env.CONNECTION_STRING)
-  .then(() => {
+async function connectToDatabase() {
+  try {
+    await mongoose.connect(process.env.CONNECTION_STRING);
     console.log("Database Connection is ready...");
-
-    // Start the server only after the database connection is successful
+    // Start the server after the database connection is successful
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server is running on http://localhost:${PORT}`);
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("Database connection error:", err);
     process.exit(1); // Exit process if the database connection fails
-  });
+  }
+}
+
+// Start the database connection
+connectToDatabase();
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error("Unexpected error:", err.stack);
-  res.status(500).json({ message: "An unexpected error occurred", error: err.message });
+  res.status(500).json({
+    message: "An unexpected error occurred.",
+    error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message,
+  });
 });
