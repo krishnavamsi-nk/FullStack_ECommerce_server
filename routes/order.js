@@ -6,6 +6,8 @@ router.get("/", async (req, res) => {
   try {
     const page = isNaN(parseInt(req.query.page)) ? 1 : parseInt(req.query.page);
     const perPage = 6;
+    const userId = req.query.userId; // Extract userId from query params
+    const filter = userId ? { userId: userId } : {}; // Apply filter if userId exists
 
     const totalPosts = await Order.countDocuments();
     const totalPages = Math.ceil(totalPosts / perPage);
@@ -26,7 +28,7 @@ router.get("/", async (req, res) => {
     }
 
     // Fetch paginated order list
-    const orderList = await Order.find()
+    const orderList = await Order.find(filter)
       .skip((page - 1) * perPage)
       .limit(perPage)
       .exec();
